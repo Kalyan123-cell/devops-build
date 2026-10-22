@@ -18,7 +18,6 @@ pipeline {
                         passwordVariable: 'DOCKER_PASS'
                     )
                 ]) {
-
                     sh '''
                     echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
                     '''
@@ -27,31 +26,62 @@ pipeline {
         }
 
         stage('Push Image') {
-
             steps {
-
                 script {
 
-                    if(env.BRANCH_NAME == "dev") {
+                    echo "Branch Name = ${env.BRANCH_NAME}"
+
+                    if (env.BRANCH_NAME == "dev") {
 
                         sh '''
                         docker tag devops-build-app:${BUILD_NUMBER} kalyangogu/dev:${BUILD_NUMBER}
                         docker push kalyangogu/dev:${BUILD_NUMBER}
                         '''
 
-                        echo 'Image Pushed to Dev repo in docker hub'
+                        echo 'Image pushed to DEV repo'
 
-                    } else if(env.BRANCH_NAME == "master") {
+                    } else if (env.BRANCH_NAME == "master") {
 
                         sh '''
                         docker tag devops-build-app:${BUILD_NUMBER} kalyangogu/prod:${BUILD_NUMBER}
                         docker push kalyangogu/prod:${BUILD_NUMBER}
                         '''
 
-                        echo 'Image Pushed to Prod repo in docker hub'
+                        echo 'Image pushed to PROD repo'
                     }
                 }
             }
         }
+
+        stage('Deploy to Production') {
+
+            when {
+                branch 'master'
+            }
+
+            steps {
+
+                sshagent(['prod-server-key']) {
+
+                    sh '''
+                    ssh -o StrictHostKeyChecking=no ubuntu@18.61.98.135 "
+
+                    docker pull kalyangogu/prod:${BUILD_NUMBER}
+
+                    docker stop react-app || true
+                    docker rm react-app || true
+
+                    docker run -d \
+                    --name react-app \
+                    -p 80:80 \
+                    kalyangogu/prod:${BUILD_NUMBER}
+
+                    "
+                    '''
+                }
+            }
+        }
     }
-}
+}        
+    
+
