@@ -39,12 +39,16 @@ pipeline {
                         docker push kalyangogu/dev:${BUILD_NUMBER}
                         '''
 
+                        echo 'Image Pushed to Dev repo in docker hub'
+
                     } else if(env.BRANCH_NAME == "master") {
 
                         sh '''
                         docker tag devops-build-app:${BUILD_NUMBER} kalyangogu/prod:${BUILD_NUMBER}
                         docker push kalyangogu/prod:${BUILD_NUMBER}
                         '''
+
+                        echo 'Image Pushed to Prod repo in docker hub'
                     }
                 }
             }
